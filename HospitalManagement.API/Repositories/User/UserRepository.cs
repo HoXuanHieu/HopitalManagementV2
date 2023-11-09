@@ -64,6 +64,7 @@ namespace HospitalManagement.API.Repositories.User
 
         public async Task<bool> CreateUser(Models.User user)
         {
+            user.Password = user.Email;
             await _context.Users.AddAsync(user);
             return await IsSaveChanges();
         }

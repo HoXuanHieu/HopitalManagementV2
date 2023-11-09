@@ -91,16 +91,19 @@ namespace HospitalManagement.API.Services.User
         {
             try
             {
-                var check = _userRepository.IsEmailAlreadyExists(userDTO.Email);
-                var roleUser = _roleRepository.GetRoleByName(userDTO.RoleName);
-                await Task.WhenAll(check, roleUser);
-                if (check.Result) return new APIResponse { StatusCode = 400, Message = "Email doesn't exist" };
-                if (roleUser.Result == null) return new APIResponse { StatusCode = 404, Message = "Roles doesn't exist" };
-                var newUser = _mapper.Map<UserCreateDTO, Models.User>(userDTO);
-                newUser.RoleId = roleUser.Result.Id;
-                newUser.IsEmailVerified = true;
-                await _userRepository.CreateUser(newUser);
-                return new APIResponse { StatusCode = 200, Message = "Success" };
+                var check = await _userRepository.IsEmailAlreadyExists(userDTO.Email);
+                var roleUser = await _roleRepository.GetRoleByName(userDTO.RoleName);
+                if (check) return new APIResponse { StatusCode = 400, Message = "Email doesn't exist" };
+                else if (roleUser == null)
+                    return new APIResponse { StatusCode = 404, Message = "Roles doesn't exist" };
+                else
+                {
+                    var newUser = _mapper.Map<UserCreateDTO, Models.User>(userDTO);
+                    newUser.RoleId = roleUser.Id;
+                    newUser.IsEmailVerified = true;
+                    await _userRepository.CreateUser(newUser);
+                    return new APIResponse { StatusCode = 200, Message = "Success" };
+                }
             }
             catch (Exception ex)
             {

@@ -11,6 +11,10 @@ using System.Net.Http.Headers;
 using Newtonsoft.Json;
 using HospitalManagement.Client.DTOs;
 using HospitalManagement.Client.DTOs.DoctorDTOs;
+using HospitalManagement.Client.DTOs.HospitalDTOs;
+using HospitalManagement.Client.DTOs.UserDTOs;
+using System.Net.Http.Json;
+using System.Text;
 
 namespace HospitalManagement.Client.Controllers
 {
@@ -19,7 +23,8 @@ namespace HospitalManagement.Client.Controllers
         private readonly ILogger<HomeController> _logger;
         private readonly HttpClient _client;
         private readonly string urlBase = "https://localhost:7191/api/Doctors";
-
+        private readonly string urlUserBase = "https://localhost:7191/api/Users";
+        private readonly string urlHospitalBase = "https://localhost:7191/api/Hospitals";
 
         public DoctorsController(ILogger<HomeController> logger, IHttpContextAccessor accessor)
         {
@@ -61,7 +66,7 @@ namespace HospitalManagement.Client.Controllers
                     return View("Error");
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return View("Error");
             }
@@ -73,7 +78,7 @@ namespace HospitalManagement.Client.Controllers
         {
             try
             {
-                HttpResponseMessage responseMessage = await _client.GetAsync(urlBase + "/"+ id.ToString());
+                HttpResponseMessage responseMessage = await _client.GetAsync(urlBase + "/" + id.ToString());
                 var responseContent = await responseMessage.Content.ReadAsStringAsync();
                 var response = JsonConvert.DeserializeObject<APIResponse>(responseContent.ToString(), new JsonSerializerSettings
                 {
@@ -105,11 +110,64 @@ namespace HospitalManagement.Client.Controllers
             }
         }
 
-        // GET: Doctors/Create
-        public IActionResult Create()
+        private async Task<DoctorDTO> GetDoctor(int id)
         {
-            ViewData["HospitalId"] = new SelectList(_context.Hospitals, "Id", "Address");
-            ViewData["UserId"] = new SelectList(_context.Users, "Id", "Email");
+            HttpResponseMessage responseMessage = await _client.GetAsync(urlBase + "/" + id.ToString());
+            var responseContent = await responseMessage.Content.ReadAsStringAsync();
+            var response = JsonConvert.DeserializeObject<APIResponse>(responseContent.ToString(), new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.Auto,
+            });
+            if (responseMessage.StatusCode == System.Net.HttpStatusCode.OK)
+            {
+                var dataResponse = JsonConvert.DeserializeObject<DoctorDTO>(response.Data.ToString(), new JsonSerializerSettings
+                {
+                    TypeNameHandling = TypeNameHandling.Auto,
+                });
+                return dataResponse;
+            }
+            return null;
+        }
+
+        private async Task<List<HospitalDTO>> GetHospitals()
+        {
+            var hospitalResponse = await _client.GetAsync(urlHospitalBase + "?page=0&pageSize=2147483647&sortColumn=Id");
+            var hospitalResponseContent = await hospitalResponse.Content.ReadAsStringAsync();
+            if (hospitalResponse.StatusCode == System.Net.HttpStatusCode.OK)
+            {
+                var dataResponse = JsonConvert.DeserializeObject<PaginationDTO<HospitalDTO>>(hospitalResponseContent.ToString(), new JsonSerializerSettings
+                {
+                    TypeNameHandling = TypeNameHandling.Auto,
+                });
+                return dataResponse.Items;
+            }
+            return null;
+        }
+
+        private async Task<List<UserDTO>> GetUsers()
+        {
+            var userResponse = await _client.GetAsync(urlUserBase + "?page=0&pageSize=2147483647&sortColumn=Id");
+            var userResponseContent = await userResponse.Content.ReadAsStringAsync();
+            var userResponseData = JsonConvert.DeserializeObject<APIResponse>(userResponseContent.ToString(), new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.Auto,
+            });
+            if (userResponse.StatusCode == System.Net.HttpStatusCode.OK)
+            {
+                var dataResponse = JsonConvert.DeserializeObject<PaginationDTO<UserDTO>>(userResponseData.Data.ToString(), new JsonSerializerSettings
+                {
+                    TypeNameHandling = TypeNameHandling.Auto,
+                });
+                return dataResponse.Items;
+            }
+            return null;
+        }
+
+        // GET: Doctors/Create
+        public async Task<IActionResult> Create()
+        {
+            var hospitals = await GetHospitals();
+            ViewData["HospitalId"] = new SelectList(hospitals, "Id", "Name");
             return View();
         }
 
@@ -118,34 +176,41 @@ namespace HospitalManagement.Client.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,UserId,Description,HospitalId")] Doctor doctor)
+        public async Task<IActionResult> Create([Bind] DoctorCreateDTO doctor)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(doctor);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                doctor.User.RoleName = "Doctor";
+                var jsonContent = new StringContent(JsonConvert.SerializeObject(doctor), Encoding.UTF8, "application/json");
+                var responseMessage = await _client.PostAsync(urlBase, jsonContent);
+                if (responseMessage.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    return RedirectToAction(nameof(Index));
+                }
+                if (responseMessage.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                {
+                    return View("Forbidden");
+                }
+                else
+                {
+                    ViewBag.ErrorMessage = "Error";
+                    return View("Error");
+                }
             }
-            ViewData["HospitalId"] = new SelectList(_context.Hospitals, "Id", "Address", doctor.HospitalId);
-            ViewData["UserId"] = new SelectList(_context.Users, "Id", "Email", doctor.UserId);
+
+            var hospitals = await GetHospitals();
+            ViewData["HospitalId"] = new SelectList(hospitals, "Id", "Name", doctor.HospitalId);
             return View(doctor);
         }
 
         // GET: Doctors/Edit/5
-        public async Task<IActionResult> Edit(int? id)
+        public async Task<IActionResult> Edit(int id)
         {
-            if (id == null || _context.Doctors == null)
-            {
-                return NotFound();
-            }
-
-            var doctor = await _context.Doctors.FindAsync(id);
-            if (doctor == null)
-            {
-                return NotFound();
-            }
-            ViewData["HospitalId"] = new SelectList(_context.Hospitals, "Id", "Address", doctor.HospitalId);
-            ViewData["UserId"] = new SelectList(_context.Users, "Id", "Email", doctor.UserId);
+            var doctor = await GetDoctor(id);
+            var hospitals = await GetHospitals();
+            ViewData["HospitalId"] = new SelectList(hospitals, "Id", "Name", doctor.HospitalId);
+            var users = await GetUsers();
+            ViewData["UserId"] = new SelectList(users, "Id", "FullName", doctor.UserId);
             return View(doctor);
         }
 
@@ -163,46 +228,38 @@ namespace HospitalManagement.Client.Controllers
 
             if (ModelState.IsValid)
             {
-                try
+                var jsonContent = new StringContent(JsonConvert.SerializeObject(doctor), Encoding.UTF8, "application/json");
+                var responseMessage = await _client.PutAsync(urlBase, jsonContent);
+                var response = JsonConvert.DeserializeObject<APIResponse>(responseMessage.Content.ToString(), new JsonSerializerSettings
                 {
-                    _context.Update(doctor);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
+                    TypeNameHandling = TypeNameHandling.Auto,
+                });
+                if (responseMessage.StatusCode == System.Net.HttpStatusCode.OK)
                 {
-                    if (!DoctorExists(doctor.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    return RedirectToAction(nameof(Index));
                 }
-                return RedirectToAction(nameof(Index));
+                if (responseMessage.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                {
+                    return View("Forbidden");
+                }
+                else
+                {
+                    ViewBag.ErrorMessage = response.Message;
+                    return View("Error");
+                }
             }
-            ViewData["HospitalId"] = new SelectList(_context.Hospitals, "Id", "Address", doctor.HospitalId);
-            ViewData["UserId"] = new SelectList(_context.Users, "Id", "Email", doctor.UserId);
+
+            var hospitals = await GetHospitals();
+            ViewData["HospitalId"] = new SelectList(hospitals, "Id", "Name", doctor.HospitalId);
+            var users = await GetUsers();
+            ViewData["UserId"] = new SelectList(users, "Id", "FullName", doctor.UserId);
             return View(doctor);
         }
 
         // GET: Doctors/Delete/5
-        public async Task<IActionResult> Delete(int? id)
+        public async Task<IActionResult> Delete(int id)
         {
-            if (id == null || _context.Doctors == null)
-            {
-                return NotFound();
-            }
-
-            var doctor = await _context.Doctors
-                .Include(d => d.Hospital)
-                .Include(d => d.User)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (doctor == null)
-            {
-                return NotFound();
-            }
-
+            var doctor = await GetDoctor(id);
             return View(doctor);
         }
 
@@ -211,23 +268,24 @@ namespace HospitalManagement.Client.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            if (_context.Doctors == null)
+            var responseMessage = await _client.DeleteAsync(urlBase + "/" + id.ToString());
+            var response = JsonConvert.DeserializeObject<APIResponse>(responseMessage.Content.ToString(), new JsonSerializerSettings
             {
-                return Problem("Entity set 'DatabaseContext.Doctors'  is null.");
-            }
-            var doctor = await _context.Doctors.FindAsync(id);
-            if (doctor != null)
+                TypeNameHandling = TypeNameHandling.Auto,
+            });
+            if (responseMessage.StatusCode == System.Net.HttpStatusCode.OK)
             {
-                _context.Doctors.Remove(doctor);
+                return RedirectToAction(nameof(Index));
             }
-            
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
-
-        private bool DoctorExists(int id)
-        {
-          return (_context.Doctors?.Any(e => e.Id == id)).GetValueOrDefault();
+            if (responseMessage.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            {
+                return View("Forbidden");
+            }
+            else
+            {
+                ViewBag.ErrorMessage = response.Message;
+                return View("Error");
+            }
         }
     }
 }
