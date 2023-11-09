@@ -73,7 +73,7 @@ namespace HospitalManagement.API.Services.Doctor
                 doctor.HospitalId = doctorCreateDTO.HospitalId;
                 doctor.UserId = user.Id;
                 var resultData = await _doctorRepository.CreateDoctor(doctor);
-                return new APIResponse { StatusCode = 200, Message = "Sucsess", };
+                return new APIResponse { StatusCode = 200, Message = "Sucsess" };
             }
             catch (Exception ex)
             {

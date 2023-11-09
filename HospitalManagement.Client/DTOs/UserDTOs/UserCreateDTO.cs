@@ -13,6 +13,6 @@ namespace HospitalManagement.Client.DTOs.UserDTOs
         public bool Gender { get; set; }
         [MaxLength(100)]
         public string? Address { get; set; }
-        public string RoleName { get; set; }
+        public string? RoleName { get; set; }
     }
 }
