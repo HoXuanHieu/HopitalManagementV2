@@ -217,14 +217,14 @@ namespace HospitalManagement.Client.Controllers
         //// POST: Doctors/Edit/5
         //// To protect from overposting attacks, enable the specific properties you want to bind to.
         //// For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        //[HttpPost]
-        //[ValidateAntiForgeryToken]
-        //public async Task<IActionResult> Edit(int id, [Bind("Id,UserId,Description,HospitalId")] Doctor doctor)
-        //{
-        //    if (id != doctor.Id)
-        //    {
-        //        return NotFound();
-        //    }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, [Bind("Id,UserId,Description,HospitalId")] Doctor doctor)
+        {
+            if (id != doctor.Id)
+            {
+                return NotFound();
+            }
 
             if (ModelState.IsValid)
             {
