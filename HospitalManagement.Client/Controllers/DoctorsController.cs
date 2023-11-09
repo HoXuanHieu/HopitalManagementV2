@@ -269,10 +269,6 @@ namespace HospitalManagement.Client.Controllers
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var responseMessage = await _client.DeleteAsync(urlBase + "/" + id.ToString());
-            var response = JsonConvert.DeserializeObject<APIResponse>(responseMessage.Content.ToString(), new JsonSerializerSettings
-            {
-                TypeNameHandling = TypeNameHandling.Auto,
-            });
             if (responseMessage.StatusCode == System.Net.HttpStatusCode.OK)
             {
                 return RedirectToAction(nameof(Index));
@@ -283,7 +279,7 @@ namespace HospitalManagement.Client.Controllers
             }
             else
             {
-                ViewBag.ErrorMessage = response.Message;
+                ViewBag.ErrorMessage = "Error";
                 return View("Error");
             }
         }
