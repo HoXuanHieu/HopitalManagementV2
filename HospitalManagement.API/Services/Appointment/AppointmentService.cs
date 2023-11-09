@@ -49,7 +49,7 @@ namespace HospitalManagement.API.Services.Appointment
                     return new APIResponse
                     {
                         StatusCode = 404,
-                        Message = "Can not find Patient by this doctor id"
+                        Message = "Can not find Doctor by this doctor id"
                     };
                 }
                 // Tạo appointment
