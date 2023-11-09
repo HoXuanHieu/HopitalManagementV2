@@ -4,6 +4,7 @@ using HospitalManagement.API.DTOs.UserDTOs;
 using HospitalManagement.API.Repositories.Doctor;
 using HospitalManagement.API.Repositories.Role;
 using HospitalManagement.API.Repositories.User;
+using System.Text.RegularExpressions;
 
 namespace HospitalManagement.API.Services.User
 {
@@ -93,17 +94,31 @@ namespace HospitalManagement.API.Services.User
             {
                 var check = await _userRepository.IsEmailAlreadyExists(userDTO.Email);
                 var roleUser = await _roleRepository.GetRoleByName(userDTO.RoleName);
-                if (check) return new APIResponse { StatusCode = 400, Message = "Email doesn't exist" };
-                else if (roleUser == null)
+
+                if (check) 
+                    return new APIResponse { StatusCode = 400, Message = "Email doesn't exist" };
+
+                string patternEmail = @"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$";
+                Regex regexEmail = new Regex(patternEmail);
+
+                if (roleUser == null) 
                     return new APIResponse { StatusCode = 404, Message = "Roles doesn't exist" };
-                else
+                if (!regexEmail.IsMatch(userDTO.Email))
                 {
-                    var newUser = _mapper.Map<UserCreateDTO, Models.User>(userDTO);
-                    newUser.RoleId = roleUser.Id;
-                    newUser.IsEmailVerified = true;
-                    await _userRepository.CreateUser(newUser);
-                    return new APIResponse { StatusCode = 200, Message = "Success" };
+                    return new APIResponse { StatusCode = 400, Message = "Invalid email address" };
                 }
+                string patternPhone = @"(84|0[3|5|7|8|9])+([0-9]{8})\b";
+                Regex regexPhone = new Regex(patternPhone);
+                if (!regexPhone.IsMatch(userDTO.PhoneNumber))
+                {
+                    return new APIResponse { StatusCode = 400, Message = "Invalid PhoneNumber" };
+                }
+                var newUser = _mapper.Map<UserCreateDTO, Models.User>(userDTO);
+                newUser.RoleId = roleUser.Id;
+                newUser.IsEmailVerified = true;
+                newUser.Password = userDTO.Email;
+                await _userRepository.CreateUser(newUser);
+                return new APIResponse { StatusCode = 200, Message = "Success" };
             }
             catch (Exception ex)
             {

@@ -105,7 +105,7 @@ namespace HospitalManagement.Client.Controllers
                     {
                         TypeNameHandling = TypeNameHandling.Auto,
                     });                   
-                    return users.Items;
+                    return users.Items.Where(x => x.RoleId == 3).ToList();
                 }
                 else
                 {
@@ -160,7 +160,8 @@ namespace HospitalManagement.Client.Controllers
             if (role == 1)
             {
                 var responseMessage = await _client.PostAsync("https://localhost:7191/api/Appointment/admin-create", jsonContent);
-                var response = JsonConvert.DeserializeObject<APIResponse>(responseMessage.ToString(), new JsonSerializerSettings
+                var responseContent = await responseMessage.Content.ReadAsStringAsync();
+                var response = JsonConvert.DeserializeObject<APIResponse>(responseContent.ToString(), new JsonSerializerSettings
                 {
                     TypeNameHandling = TypeNameHandling.Auto,
                 });

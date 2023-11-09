@@ -16,9 +16,6 @@
                 @Html.DisplayNameFor(model => model.Email)
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.Password)
-            </th>
-            <th>
                 @Html.DisplayNameFor(model => model.FullName)
             </th>
             <th>
@@ -36,54 +33,63 @@
             <th>
                 @Html.DisplayNameFor(model => model.Role)
             </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Token)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.IsEmailVerified)
-            </th>
             <th></th>
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Email)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Password)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.FullName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.PhoneNumber)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Birthday)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Gender)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Address)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Role.Name)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Token)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.IsEmailVerified)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
-}
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Email)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.FullName)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.PhoneNumber)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Birthday)
+                </td>
+                @if (item.Gender)
+                {
+                    <td>
+                       Male
+                    </td>
+                }else
+                {
+                    <td>
+                        Female
+                    </td>
+                }
+                <td>
+                    @Html.DisplayFor(modelItem => item.Address)
+                </td>
+                @if (item.RoleId == 1)
+                {
+                    <td>
+                        Admin
+                    </td>
+                }
+                @if (item.RoleId == 2)
+                {
+                    <td>
+                        Doctor
+                    </td>
+                }
+                @if (item.RoleId == 3)
+                {
+                    <td>
+                        User
+                    </td>
+                }
+               
+                <td>
+                    <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                    <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                </td>
+            </tr>
+        }
     </tbody>
 </table>
