@@ -24,7 +24,7 @@ namespace HospitalManagement.API.Controllers
             var responseData = await _userService.CreateUser(user);
             return StatusCode(responseData.StatusCode, responseData);
         }
-
+        [Authorize(Roles = "Admin, Doctor")]
         [HttpGet]
         public async Task<IActionResult> GetAllUsers(int? page = null, int? pageSize = null, string? name = null, string? roleName = null, string? sortColumn = "Id")
         {

@@ -52,6 +52,11 @@ namespace HospitalManagement.Client.Controllers
                         TypeNameHandling = TypeNameHandling.Auto,
                     });
                     if (!dataResponse.Items.Any()) ViewBag.ErrorMessage = "No appointments found";
+                    var role = HttpContext.Session.GetInt32("Role");
+                    if (role == 2)
+                    {
+                        return View(dataResponse.Items.Where(x => x.RoleId == 1));
+                    }
                     return View(dataResponse.Items);
                 }
                 if (responseMessage.StatusCode == System.Net.HttpStatusCode.Forbidden)

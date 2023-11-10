@@ -41,7 +41,7 @@ namespace HospitalManagement.Client.Controllers
                 {
                     TypeNameHandling = TypeNameHandling.Auto,
                 });
-                
+
 
                 if (responseMessage.StatusCode == System.Net.HttpStatusCode.OK)
                 {
@@ -52,7 +52,7 @@ namespace HospitalManagement.Client.Controllers
                     if (!dataResponse.Items.Any()) ViewBag.ErrorMessage = "No appointments found";
                     return View(dataResponse.Items);
                 }
-                if(responseMessage.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                if (responseMessage.StatusCode == System.Net.HttpStatusCode.Forbidden)
                 {
                     return View("Forbidden");
                 }
@@ -67,7 +67,7 @@ namespace HospitalManagement.Client.Controllers
                 return View("Error");
             }
         }
-     
+
 
         // GET: Appointments/Create
         public async Task<IActionResult> CreateAsync()
@@ -90,32 +90,70 @@ namespace HospitalManagement.Client.Controllers
         }
         private async Task<List<User>> GetUsers()
         {
-            try
+            var role = HttpContext.Session.GetInt32("role");
+            if (role == 3)
             {
-                string UserApiRequest = "https://localhost:7191/api/Users?sortColumn=Id";
-                HttpResponseMessage responseMessage = await _client.GetAsync(UserApiRequest);
-                string responseContent = await responseMessage.Content.ReadAsStringAsync();
-                var responseUser = JsonConvert.DeserializeObject<APIResponse>(responseContent.ToString(), new JsonSerializerSettings
+                try
                 {
-                    TypeNameHandling = TypeNameHandling.Auto,
-                });
-                if (responseMessage.StatusCode == System.Net.HttpStatusCode.OK)
-                {
-                    var users = JsonConvert.DeserializeObject<PaginationDTO<User>>(responseUser.Data.ToString(), new JsonSerializerSettings
+                    string UserApiRequest = "https://localhost:7191/api/Users/profile";
+                    HttpResponseMessage responseMessage = await _client.GetAsync(UserApiRequest);
+                    string responseContent = await responseMessage.Content.ReadAsStringAsync();
+                    var responseUser = JsonConvert.DeserializeObject<APIResponse>(responseContent.ToString(), new JsonSerializerSettings
                     {
                         TypeNameHandling = TypeNameHandling.Auto,
-                    });                   
-                    return users.Items.Where(x => x.RoleId == 3).ToList();
+                    });
+                    if (responseMessage.StatusCode == System.Net.HttpStatusCode.OK)
+                    {
+                        var user = JsonConvert.DeserializeObject<User>(responseUser.Data.ToString(), new JsonSerializerSettings
+                        {
+                            TypeNameHandling = TypeNameHandling.Auto,
+                        });
+                        var res = new List<User>();
+                        res.Add(user);
+                        return res;
+                    }
+                    else
+                    {
+                        return null;
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    return null;
+                    throw new Exception(ex.Message);
                 }
             }
-            catch (Exception ex)
+            else
             {
-                throw new Exception(ex.Message);
+                try
+                {
+                    string UserApiRequest = "https://localhost:7191/api/Users?sortColumn=Id";
+                    HttpResponseMessage responseMessage = await _client.GetAsync(UserApiRequest);
+                    string responseContent = await responseMessage.Content.ReadAsStringAsync();
+                    var responseUser = JsonConvert.DeserializeObject<APIResponse>(responseContent.ToString(), new JsonSerializerSettings
+                    {
+                        TypeNameHandling = TypeNameHandling.Auto,
+                    });
+                    if (responseMessage.StatusCode == System.Net.HttpStatusCode.OK)
+                    {
+                        var users = JsonConvert.DeserializeObject<PaginationDTO<User>>(responseUser.Data.ToString(), new JsonSerializerSettings
+                        {
+                            TypeNameHandling = TypeNameHandling.Auto,
+                        });
+
+                        return users.Items.Where(x => x.RoleId == 3).ToList();
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception(ex.Message);
+                }
+
             }
+            
         }
         private async Task<List<Doctor>> GetDoctors()
         {
@@ -179,15 +217,15 @@ namespace HospitalManagement.Client.Controllers
                     return View("Error");
                 }
             }
-            if (role == 2|| role == 3)
-            {              
-                var responseMessage = await _client.PostAsync(urlBase+ "/patient-create", jsonContent);
+            if (role == 2 || role == 3)
+            {
+                var responseMessage = await _client.PostAsync(urlBase + "/patient-create", jsonContent);
                 var response = JsonConvert.DeserializeObject<APIResponse>(responseMessage.ToString(), new JsonSerializerSettings
                 {
                     TypeNameHandling = TypeNameHandling.Auto,
                 });
                 if (responseMessage.StatusCode == System.Net.HttpStatusCode.OK)
-                {                   
+                {
                     return RedirectToAction(nameof(Index));
                 }
                 if (responseMessage.StatusCode == System.Net.HttpStatusCode.Forbidden)
@@ -199,7 +237,7 @@ namespace HospitalManagement.Client.Controllers
                     ViewBag.ErrorMessage = response.Message;
                     return View("Error");
                 }
-            }  
+            }
             var users = await GetUsers();
             var doctors = await GetDoctors();
             if (!users.Any() || !doctors.Any())
@@ -210,6 +248,6 @@ namespace HospitalManagement.Client.Controllers
             ViewData["UserId"] = new SelectList(doctors, "Id", "Email", appointment.UserId);
             return View(appointment);
         }
-       
+
     }
 }
